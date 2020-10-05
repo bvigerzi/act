@@ -329,21 +329,23 @@ func (rc *RunContext) getStepsContext() map[string]*stepResult {
 }
 
 type githubContext struct {
-	Event      map[string]interface{} `json:"event"`
-	EventPath  string                 `json:"event_path"`
-	Workflow   string                 `json:"workflow"`
-	RunID      string                 `json:"run_id"`
-	RunNumber  string                 `json:"run_number"`
-	Actor      string                 `json:"actor"`
-	Repository string                 `json:"repository"`
-	EventName  string                 `json:"event_name"`
-	Sha        string                 `json:"sha"`
-	Ref        string                 `json:"ref"`
-	HeadRef    string                 `json:"head_ref"`
-	BaseRef    string                 `json:"base_ref"`
-	Token      string                 `json:"token"`
-	Workspace  string                 `json:"workspace"`
-	Action     string                 `json:"action"`
+	Event        map[string]interface{} `json:"event"`
+	EventPath    string                 `json:"event_path"`
+	Workflow     string                 `json:"workflow"`
+	RunID        string                 `json:"run_id"`
+	RunNumber    string                 `json:"run_number"`
+	Actor        string                 `json:"actor"`
+	Repository   string                 `json:"repository"`
+	EventName    string                 `json:"event_name"`
+	Sha          string                 `json:"sha"`
+	Ref          string                 `json:"ref"`
+	HeadRef      string                 `json:"head_ref"`
+	BaseRef      string                 `json:"base_ref"`
+	Token        string                 `json:"token"`
+	Workspace    string                 `json:"workspace"`
+	Action       string                 `json:"action"`
+	RuntimeToken string                 `json:"runtime_token"`
+	RuntimeURL   string                 `json:"runtime_url"`
 }
 
 func (rc *RunContext) getGithubContext() *githubContext {
@@ -359,17 +361,30 @@ func (rc *RunContext) getGithubContext() *githubContext {
 	if runNumber == "" {
 		runNumber = "1"
 	}
+
+	runtimeToken := rc.Config.Env["ACTIONS_RUNTIME_TOKEN"]
+	if runtimeToken == "" {
+		runtimeToken = "TESTTOKEN"
+	} // TODO: this should be a secret, but we are just testing how this behaves
+
+	runtimeURL := rc.Config.Env["ACTIONS_RUNTIME_URL"]
+	if runtimeURL == "" {
+		runtimeURL = "TESTURL"
+	}
+
 	ghc := &githubContext{
-		Event:     make(map[string]interface{}),
-		EventPath: "/github/workflow/event.json",
-		Workflow:  rc.Run.Workflow.Name,
-		RunID:     runID,
-		RunNumber: runNumber,
-		Actor:     rc.Config.Actor,
-		EventName: rc.Config.EventName,
-		Token:     token,
-		Workspace: "/github/workspace",
-		Action:    rc.CurrentStep,
+		Event:        make(map[string]interface{}),
+		EventPath:    "/github/workflow/event.json",
+		Workflow:     rc.Run.Workflow.Name,
+		RunID:        runID,
+		RunNumber:    runNumber,
+		Actor:        rc.Config.Actor,
+		EventName:    rc.Config.EventName,
+		Token:        token,
+		Workspace:    "/github/workspace",
+		Action:       rc.CurrentStep,
+		RuntimeToken: runtimeToken,
+		RuntimeURL:   runtimeURL,
 	}
 
 	// Backwards compatibility for configs that require
@@ -506,6 +521,8 @@ func (rc *RunContext) withGithubEnv(env map[string]string) map[string]string {
 	env["GITHUB_SHA"] = github.Sha
 	env["GITHUB_REF"] = github.Ref
 	env["GITHUB_TOKEN"] = github.Token
+	env["ACTIONS_RUNTIME_TOKEN"] = github.RuntimeToken
+	env["ACTIONS_RUNTIME_URL"] = github.RuntimeURL
 	return env
 }
 
